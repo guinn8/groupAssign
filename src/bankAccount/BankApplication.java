@@ -4,7 +4,6 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-
 import java.io.*;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -29,18 +28,21 @@ import javafx.scene.control.ToggleGroup;
  * <p>
  * @author T01 Group 4
  * @author Gavin Guinn
- * @since July 24, 2018
- * @version 1.0
+ * @since Aug 8, 2018
+ * @version 2.0
  */
 public class BankApplication extends Application {
 	Scene scene;
-	
+	/**
+	 * Launches the javaFX app.
+	 * @param args
+	 */
 	public static void main(String[] args){
 		launch(args);
 	}
 	   
 	/**
-	 * method creates and populates a javaFX scene
+	 * method creates and populates a javaFX scene with a scene chosen by the try block
 	 * @param primaryStage is a Stage object
 	 */
 	@Override
@@ -61,14 +63,118 @@ public class BankApplication extends Application {
 	}
 	
 	/**
-	 * 
+	 * This class attempts to read a text file called account
+	 * @return account is the account object created from the text file 
+	 * @throws IOException if the file cannot be found
+	 */
+	public static BankAccount readFile() throws IOException{
+		
+		BankAccount account = null;
+		Customer customer = null;
+		String[] accountArr= new String[6];
+		int counter = 0;
+		
+		try {
+			File accountFile=new File("accountFiles/account");
+			BufferedReader reader=new BufferedReader(new FileReader(accountFile));
+			String line =reader.readLine();
+			
+			while( line != null) {
+				accountArr[counter]=line;
+				line =reader.readLine();
+				counter++;
+			}
+			reader.close();
+			customer= new Customer(accountArr[0],Integer.parseInt(accountArr[2]));
+			
+			if (accountArr[1].equals("SavingsAccount")) account = new SavingsAccount(customer,Double.parseDouble(accountArr[3]));
+			else if (accountArr[1].equals("ChequingAccount")) account = new ChequingAccount(customer, Double.parseDouble(accountArr[3]), Double.parseDouble(accountArr[4]));
+			
+			return account;
+			
+		}catch (Exception IOException){ 
+			throw IOException;
+		}
+	}
+	
+	
+	/**
+	 * This method populates a javaFX scene with a interface that prompts the user to 
+	 * create a new account 
+	 */
+	public void getInput() {
+		
+		Customer c = new Customer();
+		c.setCustomerID((int)(Math.random()*((9999-2000)+1))+2000);
+
+		HBox radioBox= new HBox(2);
+		ToggleGroup tGroup = new ToggleGroup();
+		
+		RadioButton chequing =new RadioButton("Chequing Account");
+		chequing.setToggleGroup(tGroup);
+		chequing.setUserData("ChequingAccount");
+		radioBox.getChildren().add(chequing);
+		
+		RadioButton saving =new RadioButton("Savings Account");
+		saving.setUserData("SavingsAccount");
+		saving.setToggleGroup(tGroup);
+		radioBox.getChildren().add(saving);
+		
+		Label id= new Label("Customer ID: "+Integer.toString(c.getID()));
+		TextField name = new TextField();
+		name.setPromptText("Enter your name");
+	
+		Button execute= new Button("execute");
+		
+		VBox root = new VBox (3);
+		root.getChildren().add(radioBox);
+		root.getChildren().add(id);
+		root.getChildren().add(name);
+		root.getChildren().add(execute);
+
+		scene = new Scene(root,400,200);
+		
+		execute.setOnAction(new EventHandler<ActionEvent>() {
+		
+		    public void handle(ActionEvent e) {
+		    	if(name.getText()!=null) {
+		    		 c.setName(name.getText());
+		    		 Platform.exit();
+		    	}
+		    	
+		    	File account=new File("accountFiles/account");
+				PrintWriter writer;
+				try {
+					writer = new PrintWriter(account);
+					writer.println(c.getName());
+					writer.println((String) tGroup.getSelectedToggle().getUserData());
+					writer.println(c.getID());
+					writer.println(0.00);
+					writer.print(0.00);
+					writer.close();
+				} catch (FileNotFoundException e1) {
+					e1.printStackTrace();
+				}
+		    }
+		});
+		
+		tGroup.selectedToggleProperty().addListener(new ChangeListener<Toggle>() {
+			@Override
+			public void changed(ObservableValue<? extends Toggle> observable, Toggle oldValue, Toggle newValue) {
+			}
+		});
+	}
+	
+	/**
+	 * This method populates a javaFX scene with a interface that prompts the user to 
+	 * create manipulate an existing account 
 	 * @param account
 	 * @throws IOException
 	 */
 	public void interact(BankAccount account) throws IOException{
 		String accountType = null;
+		
 		if (account instanceof SavingsAccount) accountType="Saving Account";
-
 		else if (account instanceof ChequingAccount)accountType="Chequing Account";
 		
 		Button executeButton= new Button("Execute");
@@ -143,104 +249,6 @@ public class BankApplication extends Application {
 		    }
 		});
 	}
-	/**
-	 * 
-	 */
-	public void getInput() {
-		
-		Customer c = new Customer();
-		c.setCustomerID((int)(Math.random()*((9999-2000)+1))+2000);
-
-		HBox radioBox= new HBox(2);
-		ToggleGroup tGroup = new ToggleGroup();
-		
-		RadioButton chequing =new RadioButton("Chequing Account");
-		chequing.setToggleGroup(tGroup);
-		chequing.setUserData("ChequingAccount");
-		radioBox.getChildren().add(chequing);
-		
-		RadioButton saving =new RadioButton("Savings Account");
-		saving.setUserData("SavingsAccount");
-		saving.setToggleGroup(tGroup);
-		radioBox.getChildren().add(saving);
-		
-		Label id= new Label("Customer ID: "+Integer.toString(c.getID()));
-		TextField name = new TextField();
-		name.setPromptText("Enter your name");
 	
-		Button execute= new Button("execute");
-		
-		VBox root = new VBox (3);
-		root.getChildren().add(radioBox);
-		root.getChildren().add(id);
-		root.getChildren().add(name);
-		root.getChildren().add(execute);
-
-		scene = new Scene(root,400,200);
-		
-		execute.setOnAction(new EventHandler<ActionEvent>() { //creates a new event handler object
-		
-		    public void handle(ActionEvent e) {
-		    	if(name.getText()!=null) {
-		    		 c.setName(name.getText());
-		    		 Platform.exit();
-		    	}
-		    	
-		    	File account=new File("accountFiles/account");
-				PrintWriter writer;
-				try {
-					writer = new PrintWriter(account);
-					writer.println(c.getName());
-					writer.println((String) tGroup.getSelectedToggle().getUserData());
-					writer.println(c.getID());
-					writer.println(0.00);
-					writer.print(0.00);
-					writer.close();
-				} catch (FileNotFoundException e1) {
-					e1.printStackTrace();
-				}
-		    }
-		});
-		
-		tGroup.selectedToggleProperty().addListener(new ChangeListener<Toggle>() {
-			@Override
-			public void changed(ObservableValue<? extends Toggle> observable, Toggle oldValue, Toggle newValue) {
-			}
-		});
-	}
 	
-	/**
-	 * 
-	 * @return
-	 * @throws IOException
-	 */
-	public static BankAccount readFile() throws IOException{
-		
-		BankAccount account = null;
-		Customer customer = null;
-		String[] accountArr= new String[6];
-		int counter = 0;
-		
-		try {
-			File accountFile=new File("accountFiles/account");
-			BufferedReader reader=new BufferedReader(new FileReader(accountFile));
-			String line =reader.readLine();
-			
-			while( line != null) {
-				accountArr[counter]=line;
-				line =reader.readLine();
-				counter++;
-			}
-			reader.close();
-			customer= new Customer(accountArr[0],Integer.parseInt(accountArr[2]));
-			
-			if (accountArr[1].equals("SavingsAccount")) account = new SavingsAccount(customer,Double.parseDouble(accountArr[3]));
-			else if (accountArr[1].equals("ChequingAccount")) account = new ChequingAccount(customer, Double.parseDouble(accountArr[3]), Double.parseDouble(accountArr[4]));
-			
-			return account;
-			
-		}catch (Exception IOException){ 
-			throw IOException;
-		}
-	}
 }
